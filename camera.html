@@ -67,10 +67,7 @@
     try {
       const parsed = new URL(origin);
   
-      if (
-        parsed.protocol !== 'https:' ||
-        parsed.origin !== origin
-      ) {
+      if (parsed.protocol !== 'https:' || parsed.origin !== origin) {
         return false;
       }
   
@@ -79,7 +76,7 @@
       return (
         hostname === 'script.google.com' ||
         hostname === 'script.googleusercontent.com' ||
-        /^[a-z0-9-]+-script\.googleusercontent\.com$/.test(hostname) ||
+        hostname.endsWith('-script.googleusercontent.com') ||
         hostname.endsWith('.script.googleusercontent.com')
       );
   
