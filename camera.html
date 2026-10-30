@@ -61,11 +61,29 @@
   const nonce = params.get('nonce') || '';
   const returnOrigin = params.get('returnOrigin') || '';
 
-  // Batasi tujuan pesan hanya ke domain Apps Script yang dikenal.
-  const allowedParentOrigins = [
-    'https://script.google.com',
-    'https://script.googleusercontent.com'
-  ];
+    // Batasi tujuan pesan hanya ke domain Apps Script yang dikenal.
+    // Validasi origin Google Apps Script.
+  function isAllowedParentOrigin(origin) {
+    try {
+      const parsed = new URL(origin);
+  
+      // Harus menggunakan HTTPS dan tidak boleh berupa URL dengan path.
+      if (parsed.protocol !== 'https:' || parsed.origin !== origin) {
+        return false;
+      }
+  
+      const hostname = parsed.hostname;
+  
+      return (
+        hostname === 'script.google.com' ||
+        hostname === 'script.googleusercontent.com' ||
+        hostname.endsWith('.script.googleusercontent.com')
+      );
+  
+    } catch (error) {
+      return false;
+    }
+  }
 
   const video = document.getElementById('video');
   const preview = document.getElementById('preview');
@@ -177,7 +195,7 @@
       return;
     }
 
-    if (!nonce || !allowedParentOrigins.includes(returnOrigin)) {
+    if (!nonce || !isAllowedParentOrigin(returnOrigin)) {
       status('Sesi pengiriman tidak valid. Tutup halaman ini dan buka kamera dari SIMAGANG.');
       return;
     }
