@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#075985">
+  <title>Kamera Absensi SIMAGANG</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f1f5f9; color: #0f172a;
+    }
+    main {
+      max-width: 560px; margin: auto; padding: 20px;
+      background: white; border-radius: 18px;
+      box-shadow: 0 8px 28px #0f172a12;
+    }
+    h1 { font-size: 22px; margin-top: 0; }
+    p { color: #475569; font-size: 14px; line-height: 1.5; }
+    video, #preview {
+      display: block; width: 100%; max-height: 65vh;
+      object-fit: cover; background: #0f172a;
+      border-radius: 12px;
+    }
+    button {
+      width: 100%; margin-top: 12px; padding: 13px;
+      border: 0; border-radius: 10px; cursor: pointer;
+      font-weight: 700; font-size: 15px;
+    }
+    .primary { background: #0369a1; color: white; }
+    .secondary { background: #e2e8f0; color: #0f172a; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    #status { margin-top: 12px; overflow-wrap: anywhere; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Absensi Kamera SIMAGANG</h1>
+  <p>
+    Izinkan akses kamera, pastikan wajah terlihat jelas,
+    lalu ambil foto untuk dikirim kembali ke SIMAGANG.
+  </p>
+
+  <video id="video" autoplay playsinline muted></video>
+  <img id="preview" class="hidden" alt="Pratinjau foto">
+  <canvas id="canvas" class="hidden"></canvas>
+
+  <button id="startBtn" class="primary">Aktifkan Kamera</button>
+  <button id="captureBtn" class="primary hidden">Ambil Foto</button>
+  <button id="retakeBtn" class="secondary hidden">Ulangi Foto</button>
+  <button id="sendBtn" class="primary hidden">Gunakan Foto Ini</button>
+  <p id="status" role="status">Kamera belum diaktifkan.</p>
+</main>
+
+<script>
+(() => {
+  const params = new URLSearchParams(location.search);
+  const nonce = params.get('nonce') || '';
+  const returnOrigin = params.get('returnOrigin') || '';
+
+  // Batasi tujuan pesan hanya ke domain Apps Script yang dikenal.
+  const allowedParentOrigins = [
+    'https://script.google.com',
+    'https://script.googleusercontent.com'
+  ];
+
+  const video = document.getElementById('video');
+  const preview = document.getElementById('preview');
+  const canvas = document.getElementById('canvas');
+  const startBtn = document.getElementById('startBtn');
+  const captureBtn = document.getElementById('captureBtn');
+  const retakeBtn = document.getElementById('retakeBtn');
+  const sendBtn = document.getElementById('sendBtn');
+  const statusEl = document.getElementById('status');
+
+  let stream = null;
+  let photoBase64 = null;
+
+  function status(message) {
+    statusEl.textContent = message;
+  }
+
+  function stopCamera() {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
+    video.srcObject = null;
+  }
+
+  async function startCamera() {
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error(
+          'Browser tidak mendukung kamera. Buka halaman melalui HTTPS.'
+        );
+      }
+
+      stopCamera();
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: { ideal: 'user' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
+
+      video.srcObject = stream;
+      await video.play();
+
+      startBtn.classList.add('hidden');
+      captureBtn.classList.remove('hidden');
+      preview.classList.add('hidden');
+      video.classList.remove('hidden');
+      retakeBtn.classList.add('hidden');
+      sendBtn.classList.add('hidden');
+      status('Kamera aktif. Pastikan wajah terlihat jelas.');
+    } catch (err) {
+      console.error('Camera error:', err);
+      let message = err.message || 'Tidak diketahui';
+
+      if (err.name === 'NotAllowedError') {
+        message = 'Akses kamera ditolak. Periksa izin kamera browser dan sistem operasi.';
+      } else if (err.name === 'NotFoundError') {
+        message = 'Kamera tidak ditemukan pada perangkat ini.';
+      } else if (err.name === 'NotReadableError') {
+        message = 'Kamera sedang digunakan aplikasi lain.';
+      }
+
+      status('Kamera gagal dibuka: ' + message);
+      startBtn.classList.remove('hidden');
+    }
+  }
+
+  function capturePhoto() {
+    if (!stream || !video.videoWidth) {
+      status('Tunggu sampai kamera siap, lalu coba lagi.');
+      return;
+    }
+
+    // Kompres foto untuk mempercepat pengiriman dari HP/laptop.
+    const maxWidth = 1280;
+    const scale = Math.min(1, maxWidth / video.videoWidth);
+    canvas.width = Math.round(video.videoWidth * scale);
+    canvas.height = Math.round(video.videoHeight * scale);
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+    photoBase64 = dataUrl.split(',')[1];
+
+    preview.src = dataUrl;
+    preview.classList.remove('hidden');
+    video.classList.add('hidden');
+    captureBtn.classList.add('hidden');
+    retakeBtn.classList.remove('hidden');
+    sendBtn.classList.remove('hidden');
+
+    stopCamera();
+    status('Foto siap. Periksa hasilnya sebelum mengirim.');
+  }
+
+  function retakePhoto() {
+    photoBase64 = null;
+    preview.removeAttribute('src');
+    startCamera();
+  }
+
+  function sendPhoto() {
+    if (!photoBase64) {
+      status('Ambil foto terlebih dahulu.');
+      return;
+    }
+
+    if (!nonce || !allowedParentOrigins.includes(returnOrigin)) {
+      status('Sesi pengiriman tidak valid. Tutup halaman ini dan buka kamera dari SIMAGANG.');
+      return;
+    }
+
+    if (!window.opener || window.opener.closed) {
+      status('Halaman SIMAGANG tidak ditemukan. Buka kamera dari tombol di SIMAGANG.');
+      return;
+    }
+
+    sendBtn.disabled = true;
+    status('Mengirim foto ke halaman SIMAGANG...');
+
+    // Token login tidak dikirim ke GitHub Pages.
+    window.opener.postMessage({
+      type: 'SIMAGANG_CAMERA_PHOTO',
+      nonce: nonce,
+      mimeType: 'image/jpeg',
+      base64: photoBase64
+    }, returnOrigin);
+
+    status('Foto dikirim. Kembali ke tab SIMAGANG untuk menyelesaikan absensi.');
+    setTimeout(() => window.close(), 700);
+  }
+
+  startBtn.addEventListener('click', startCamera);
+  captureBtn.addEventListener('click', capturePhoto);
+  retakeBtn.addEventListener('click', retakePhoto);
+  sendBtn.addEventListener('click', sendPhoto);
+
+  window.addEventListener('pagehide', stopCamera);
+})();
+</script>
+</body>
+</html>
