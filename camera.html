@@ -195,8 +195,18 @@
       return;
     }
 
-    if (!nonce || !isAllowedParentOrigin(returnOrigin)) {
-      status('Sesi pengiriman tidak valid. Tutup halaman ini dan buka kamera dari SIMAGANG.');
+    if (!nonce) {
+      status('DEBUG: Nonce tidak ditemukan pada URL kamera.');
+      return;
+    }
+    
+    if (!returnOrigin) {
+      status('DEBUG: ReturnOrigin tidak ditemukan pada URL kamera.');
+      return;
+    }
+    
+    if (!isAllowedParentOrigin(returnOrigin)) {
+      status('DEBUG: Origin tidak diizinkan: ' + returnOrigin);
       return;
     }
 
