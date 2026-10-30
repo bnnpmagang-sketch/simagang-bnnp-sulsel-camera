@@ -67,16 +67,19 @@
     try {
       const parsed = new URL(origin);
   
-      // Harus menggunakan HTTPS dan tidak boleh berupa URL dengan path.
-      if (parsed.protocol !== 'https:' || parsed.origin !== origin) {
+      if (
+        parsed.protocol !== 'https:' ||
+        parsed.origin !== origin
+      ) {
         return false;
       }
   
-      const hostname = parsed.hostname;
+      const hostname = parsed.hostname.toLowerCase();
   
       return (
         hostname === 'script.google.com' ||
         hostname === 'script.googleusercontent.com' ||
+        /^[a-z0-9-]+-script\.googleusercontent\.com$/.test(hostname) ||
         hostname.endsWith('.script.googleusercontent.com')
       );
   
@@ -84,19 +87,7 @@
       return false;
     }
   }
-
-  const video = document.getElementById('video');
-  const preview = document.getElementById('preview');
-  const canvas = document.getElementById('canvas');
-  const startBtn = document.getElementById('startBtn');
-  const captureBtn = document.getElementById('captureBtn');
-  const retakeBtn = document.getElementById('retakeBtn');
-  const sendBtn = document.getElementById('sendBtn');
-  const statusEl = document.getElementById('status');
-
-  let stream = null;
-  let photoBase64 = null;
-
+  
   function status(message) {
     statusEl.textContent = message;
   }
