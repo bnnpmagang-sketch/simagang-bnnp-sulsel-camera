@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -428,10 +427,8 @@
       return;
     }
 
-    if (!window.opener || window.opener.closed) {
-      showStatus(
-        'Halaman SIMAGANG tidak ditemukan. Buka kamera melalui SIMAGANG.'
-      );
+    if (window.parent === window) {
+      showStatus('Halaman SIMAGANG tidak ditemukan.');
       return;
     }
 
@@ -453,7 +450,7 @@
       // Mengirim foto ke halaman utama.
       // Token login tidak dikirim ke GitHub Pages.
 
-      window.opener.postMessage(
+      window.parent.postMessage(
         {
           type: 'SIMAGANG_CAMERA_PHOTO',
           nonce: nonce,
@@ -469,10 +466,6 @@
 
       // Jangan langsung menganggap foto sudah tersimpan.
       // Penyimpanan dilakukan oleh Apps Script.
-
-      setTimeout(function () {
-        window.close();
-      }, 1200);
 
     } catch (error) {
       console.error('Send photo error:', error);
