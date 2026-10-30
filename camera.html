@@ -57,55 +57,78 @@
 
 <script>
 (() => {
+  // Membaca parameter dari URL kamera
   const params = new URLSearchParams(location.search);
   const nonce = params.get('nonce') || '';
   const returnOrigin = params.get('returnOrigin') || '';
 
-    // Batasi tujuan pesan hanya ke domain Apps Script yang dikenal.
-    // Validasi origin Google Apps Script.
+  // Mengambil seluruh elemen HTML
+  const video = document.getElementById('video');
+  const preview = document.getElementById('preview');
+  const canvas = document.getElementById('canvas');
+
+  const startBtn = document.getElementById('startBtn');
+  const captureBtn = document.getElementById('captureBtn');
+  const retakeBtn = document.getElementById('retakeBtn');
+  const sendBtn = document.getElementById('sendBtn');
+  const statusEl = document.getElementById('status');
+
+  // Variabel kamera dan foto
+  let stream = null;
+  let photoBase64 = null;
+
+  // Validasi alamat Google Apps Script
   function isAllowedParentOrigin(origin) {
     try {
       const parsed = new URL(origin);
-  
-      if (parsed.protocol !== 'https:' || parsed.origin !== origin) {
+
+      if (
+        parsed.protocol !== 'https:' ||
+        parsed.origin !== origin
+      ) {
         return false;
       }
-  
+
       const hostname = parsed.hostname.toLowerCase();
-  
+
       return (
         hostname === 'script.google.com' ||
         hostname === 'script.googleusercontent.com' ||
         hostname.endsWith('-script.googleusercontent.com') ||
         hostname.endsWith('.script.googleusercontent.com')
       );
-  
+
     } catch (error) {
       return false;
     }
   }
-  
+
+  // Menampilkan status
   function status(message) {
     statusEl.textContent = message;
   }
 
+  // Menghentikan kamera
   function stopCamera() {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       stream = null;
     }
+
     video.srcObject = null;
   }
 
+  // Mengaktifkan kamera
   async function startCamera() {
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
         throw new Error(
-          'Browser tidak mendukung kamera. Buka halaman melalui HTTPS.'
+          'Browser tidak mendukung kamera. Gunakan HTTPS.'
         );
       }
 
       stopCamera();
+
       stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
         video: {
@@ -120,19 +143,24 @@
 
       startBtn.classList.add('hidden');
       captureBtn.classList.remove('hidden');
+
       preview.classList.add('hidden');
       video.classList.remove('hidden');
+
       retakeBtn.classList.add('hidden');
       sendBtn.classList.add('hidden');
+
       status('Kamera aktif. Pastikan wajah terlihat jelas.');
+
     } catch (err) {
       console.error('Camera error:', err);
+
       let message = err.message || 'Tidak diketahui';
 
       if (err.name === 'NotAllowedError') {
-        message = 'Akses kamera ditolak. Periksa izin kamera browser dan sistem operasi.';
+        message = 'Akses kamera ditolak. Periksa izin kamera browser.';
       } else if (err.name === 'NotFoundError') {
-        message = 'Kamera tidak ditemukan pada perangkat ini.';
+        message = 'Kamera tidak ditemukan.';
       } else if (err.name === 'NotReadableError') {
         message = 'Kamera sedang digunakan aplikasi lain.';
       }
@@ -142,41 +170,57 @@
     }
   }
 
+  // Mengambil foto
   function capturePhoto() {
     if (!stream || !video.videoWidth) {
-      status('Tunggu sampai kamera siap, lalu coba lagi.');
+      status('Tunggu sampai kamera siap.');
       return;
     }
 
-    // Kompres foto untuk mempercepat pengiriman dari HP/laptop.
     const maxWidth = 1280;
     const scale = Math.min(1, maxWidth / video.videoWidth);
+
     canvas.width = Math.round(video.videoWidth * scale);
     canvas.height = Math.round(video.videoHeight * scale);
 
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    ctx.drawImage(
+      video,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
 
     const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+
     photoBase64 = dataUrl.split(',')[1];
 
     preview.src = dataUrl;
     preview.classList.remove('hidden');
+
     video.classList.add('hidden');
     captureBtn.classList.add('hidden');
+
     retakeBtn.classList.remove('hidden');
     sendBtn.classList.remove('hidden');
 
     stopCamera();
+
     status('Foto siap. Periksa hasilnya sebelum mengirim.');
   }
 
+  // Mengambil ulang foto
   function retakePhoto() {
     photoBase64 = null;
+
     preview.removeAttribute('src');
+
     startCamera();
   }
 
+  // Mengirim foto kembali ke SIMAGANG
   function sendPhoto() {
     if (!photoBase64) {
       status('Ambil foto terlebih dahulu.');
@@ -184,46 +228,57 @@
     }
 
     if (!nonce) {
-      status('DEBUG: Nonce tidak ditemukan pada URL kamera.');
+      status('Sesi kamera tidak memiliki nonce.');
       return;
     }
-    
-    if (!returnOrigin) {
-      status('DEBUG: ReturnOrigin tidak ditemukan pada URL kamera.');
-      return;
-    }
-    
+
     if (!isAllowedParentOrigin(returnOrigin)) {
-      status('DEBUG: Origin tidak diizinkan: ' + returnOrigin);
+      status('Alamat asal SIMAGANG tidak diizinkan: ' + returnOrigin);
       return;
     }
 
     if (!window.opener || window.opener.closed) {
-      status('Halaman SIMAGANG tidak ditemukan. Buka kamera dari tombol di SIMAGANG.');
+      status('Halaman SIMAGANG tidak ditemukan. Buka kamera dari SIMAGANG.');
       return;
     }
 
-    sendBtn.disabled = true;
-    status('Mengirim foto ke halaman SIMAGANG...');
+    try {
+      sendBtn.disabled = true;
 
-    // Token login tidak dikirim ke GitHub Pages.
-    window.opener.postMessage({
-      type: 'SIMAGANG_CAMERA_PHOTO',
-      nonce: nonce,
-      mimeType: 'image/jpeg',
-      base64: photoBase64
-    }, returnOrigin);
+      status('Mengirim foto ke SIMAGANG...');
 
-    status('Foto dikirim. Kembali ke tab SIMAGANG untuk menyelesaikan absensi.');
-    setTimeout(() => window.close(), 700);
+      // Token login tidak dikirim ke GitHub Pages.
+      window.opener.postMessage({
+        type: 'SIMAGANG_CAMERA_PHOTO',
+        nonce: nonce,
+        mimeType: 'image/jpeg',
+        base64: photoBase64
+      }, returnOrigin);
+
+      status('Foto dikirim. Kembali ke tab SIMAGANG.');
+
+      setTimeout(() => {
+        window.close();
+      }, 1000);
+
+    } catch (err) {
+      console.error('Pengiriman foto gagal:', err);
+
+      sendBtn.disabled = false;
+
+      status('Gagal mengirim foto: ' + err.message);
+    }
   }
 
+  // Menghubungkan tombol dengan fungsi
   startBtn.addEventListener('click', startCamera);
   captureBtn.addEventListener('click', capturePhoto);
   retakeBtn.addEventListener('click', retakePhoto);
   sendBtn.addEventListener('click', sendPhoto);
 
+  // Menghentikan kamera ketika halaman ditutup
   window.addEventListener('pagehide', stopCamera);
+
 })();
 </script>
 </body>
