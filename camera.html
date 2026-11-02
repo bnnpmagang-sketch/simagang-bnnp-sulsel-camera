@@ -427,8 +427,8 @@
       return;
     }
 
-    if (window.parent === window) {
-      showStatus('Halaman SIMAGANG tidak ditemukan.');
+    if (!window.opener || window.opener.closed) {
+      showStatus('Tab SIMAGANG tidak ditemukan. Jangan tutup tab SIMAGANG saat mengambil foto.');
       return;
     }
 
@@ -450,7 +450,7 @@
       // Mengirim foto ke halaman utama.
       // Token login tidak dikirim ke GitHub Pages.
 
-      window.parent.postMessage(
+      window.opener.postMessage(
         {
           type: 'SIMAGANG_CAMERA_PHOTO',
           nonce: nonce,
