@@ -428,7 +428,7 @@
     }
 
     if (!window.opener || window.opener.closed) {
-      showStatus('Tab SIMAGANG tidak ditemukan. Jangan tutup tab SIMAGANG saat mengambil foto.');
+      showStatus('Jendela SIMAGANG tidak ditemukan. Tutup kamera lalu buka kembali dari halaman absensi.');
       return;
     }
 
@@ -461,8 +461,14 @@
       );
 
       showStatus(
-        'Foto sudah dikirim. Kembali ke tab SIMAGANG.'
+        'Foto berhasil dikirim ke SIMAGANG. Jendela kamera akan ditutup.'
       );
+
+      // Beri waktu singkat agar pesan diterima halaman SIMAGANG.
+      setTimeout(function () {
+        stopCamera();
+        window.close();
+      }, 500);
 
       // Jangan langsung menganggap foto sudah tersimpan.
       // Penyimpanan dilakukan oleh Apps Script.
