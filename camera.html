@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#075985">
-  <title>Kamera Absensi SIMAGANG</title>
+  <title>Kamera Pas Foto Pendaftaran SIMAGANG</title>
 
   <style>
     * {
@@ -44,8 +44,12 @@
       display: block;
       width: 100%;
       max-height: 65vh;
+      max-width: 360px;
+      aspect-ratio: 3 / 4;
       object-fit: cover;
       background: #0f172a;
+      margin-left: auto;
+      margin-right: auto;
       border-radius: 12px;
     }
 
@@ -102,11 +106,11 @@
 
 <main>
 
-  <h1>Absensi Kamera SIMAGANG</h1>
+  <h1>Kamera Pas Foto Pendaftaran</h1>
 
   <p>
-    Izinkan akses kamera, pastikan wajah terlihat jelas,
-    lalu ambil foto untuk dikirim kembali ke SIMAGANG.
+    Izinkan akses kamera, posisikan wajah di tengah bingkai 3×4,
+    lalu ambil foto untuk dimasukkan ke formulir pendaftaran SIMAGANG.
   </p>
 
   <video id="video" autoplay playsinline muted></video>
@@ -114,7 +118,7 @@
   <img
     id="preview"
     class="hidden"
-    alt="Pratinjau foto absensi"
+    alt="Pratinjau pas foto pendaftaran"
   >
 
   <canvas id="canvas" class="hidden"></canvas>
@@ -315,29 +319,38 @@
     }
 
     try {
-      const maxWidth = 1280;
+      // Potong bagian tengah menjadi rasio potret 3:4 untuk pas foto.
+      const targetRatio = 3 / 4;
+      const sourceRatio = video.videoWidth / video.videoHeight;
+      let sourceWidth = video.videoWidth;
+      let sourceHeight = video.videoHeight;
+      let sourceX = 0;
+      let sourceY = 0;
 
-      const scale = Math.min(
-        1,
-        maxWidth / video.videoWidth
-      );
+      if (sourceRatio > targetRatio) {
+        sourceWidth = Math.round(video.videoHeight * targetRatio);
+        sourceX = Math.round((video.videoWidth - sourceWidth) / 2);
+      } else {
+        sourceHeight = Math.round(video.videoWidth / targetRatio);
+        sourceY = Math.round((video.videoHeight - sourceHeight) / 2);
+      }
 
-      canvas.width = Math.round(
-        video.videoWidth * scale
-      );
-
-      canvas.height = Math.round(
-        video.videoHeight * scale
-      );
+      const outputHeight = 1200;
+      const outputWidth = 900;
+      canvas.width = outputWidth;
+      canvas.height = outputHeight;
 
       const context = canvas.getContext('2d');
-
       context.drawImage(
         video,
+        sourceX,
+        sourceY,
+        sourceWidth,
+        sourceHeight,
         0,
         0,
-        canvas.width,
-        canvas.height
+        outputWidth,
+        outputHeight
       );
 
       const dataUrl = canvas.toDataURL(
@@ -363,7 +376,7 @@
       stopCamera();
 
       showStatus(
-        'Foto berhasil diambil. Periksa sebelum mengirim.'
+        'Pas foto berhasil diambil. Periksa sebelum digunakan.'
       );
 
     } catch (error) {
@@ -461,7 +474,7 @@
       );
 
       showStatus(
-        'Foto berhasil dikirim ke SIMAGANG. Jendela kamera akan ditutup.'
+        'Pas foto berhasil dikirim ke formulir pendaftaran. Jendela kamera akan ditutup.'
       );
 
       // Beri waktu singkat agar pesan diterima halaman SIMAGANG.
@@ -524,7 +537,7 @@
 
   if (!nonce || !returnOrigin) {
     showStatus(
-      'Buka halaman kamera melalui tombol Absensi Kamera di SIMAGANG.'
+      'Buka halaman ini melalui tombol Ambil Foto pada formulir pendaftaran SIMAGANG.'
     );
   }
 
