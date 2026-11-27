@@ -467,7 +467,7 @@
       );
 
       showStatus(
-        'Foto sedang dimasukkan ke formulir SIMAGANG. Mohon tunggu konfirmasi...'
+        'Foto sedang dikirim ke formulir SIMAGANG. Biarkan pop-up ini terbuka sampai muncul konfirmasi...'
       );
 
       // Tab kamera hanya ditutup setelah halaman formulir mengonfirmasi
