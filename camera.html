@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#075985">
-  <title>Kamera Pas Foto Pendaftaran SIMAGANG</title>
+  <title>Kamera Absensi SIMAGANG</title>
 
   <style>
     * {
@@ -102,10 +102,11 @@
 
 <main>
 
-  <h1>Ambil Pas Foto Pendaftaran</h1>
+  <h1>Absensi Kamera SIMAGANG</h1>
 
   <p>
-    Izinkan akses kamera depan, posisikan wajah di tengah, lalu ambil pas foto untuk formulir pengajuan magang.
+    Izinkan akses kamera, pastikan wajah terlihat jelas,
+    lalu ambil foto untuk dikirim kembali ke SIMAGANG.
   </p>
 
   <video id="video" autoplay playsinline muted></video>
@@ -135,7 +136,7 @@
   </button>
 
   <p id="status" role="status">
-    Kamera pas foto belum diaktifkan.
+    Kamera belum diaktifkan.
   </p>
 
 </main>
@@ -362,7 +363,7 @@
       stopCamera();
 
       showStatus(
-        'Pas foto berhasil diambil. Periksa sebelum memasukkan ke formulir.'
+        'Foto berhasil diambil. Periksa sebelum mengirim.'
       );
 
     } catch (error) {
@@ -427,7 +428,7 @@
     }
 
     if (!window.opener || window.opener.closed) {
-      showStatus('Jendela formulir pengajuan magang tidak ditemukan. Tutup kamera lalu buka kembali dari tombol Ambil Foto.');
+      showStatus('Jendela SIMAGANG tidak ditemukan. Tutup kamera lalu buka kembali dari halaman absensi.');
       return;
     }
 
@@ -451,7 +452,7 @@
 
       window.opener.postMessage(
         {
-          type: 'SIMAGANG_REGISTRATION_PHOTO',
+          type: 'SIMAGANG_CAMERA_PHOTO',
           nonce: nonce,
           mimeType: 'image/jpeg',
           base64: photoBase64
@@ -460,7 +461,7 @@
       );
 
       showStatus(
-        'Pas foto berhasil dikirim ke formulir pengajuan magang. Jendela kamera akan ditutup.'
+        'Foto berhasil dikirim ke SIMAGANG. Jendela kamera akan ditutup.'
       );
 
       // Beri waktu singkat agar pesan diterima halaman SIMAGANG.
@@ -523,7 +524,7 @@
 
   if (!nonce || !returnOrigin) {
     showStatus(
-      'Buka halaman ini melalui tombol Ambil Foto pada formulir pengajuan magang SIMAGANG.'
+      'Buka halaman kamera melalui tombol Absensi Kamera di SIMAGANG.'
     );
   }
 
